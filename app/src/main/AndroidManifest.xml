@@ -3,6 +3,7 @@
     package="com.leebai.daily">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -18,9 +19,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".EditNoteActivity">
+
+        <activity android:name=".EditNoteActivity"
+            android:windowSoftInputMode="adjustResize|stateHidden"
+            >
 
         </activity>
+
+        <activity android:name=".imageview.PhotoPageActivity">
+
+        </activity>
+
+
+        <activity android:name="me.iwf.photopicker.PhotoPickerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            />
+
+        <activity android:name="me.iwf.photopicker.PhotoPagerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"/>
 
         <provider
             android:authorities="com.leebai.daily"

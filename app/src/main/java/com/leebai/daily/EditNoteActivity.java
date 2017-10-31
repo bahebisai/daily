@@ -30,8 +30,11 @@ import com.leebai.daily.xrichtext.SDCardUtil;
 
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
+import me.iwf.photopicker.PhotoPagerActivity;
+import me.iwf.photopicker.PhotoPreview;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscriber;
@@ -54,6 +57,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
 
 
     private RichTextEditor mRichTextEditor;
+    private RichTextEditor.onImageClickListener mImageClickListener;
     private Subscription subsLoading;
     private Subscription subsInsert;
 
@@ -67,6 +71,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
     //isEdit or isNew
     private boolean isEdit;
 
+    private String mTitle;
     private String mOriginalText;
     private long mId;
 
@@ -76,7 +81,8 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
 
         setContentView(R.layout.add_note);
 
-        mRichTextEditor = (RichTextEditor) findViewById(R.id.content_edit);
+        mRichTextEditor = findViewById(R.id.content_edit);
+
 
         mTitleET = findViewById(R.id.title);
         mDone = findViewById(R.id.done);
@@ -103,9 +109,8 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         if (isEdit) {
             mId = getIntent().getLongExtra("id", 0);
             mOriginalText = getIntent().getStringExtra("original_text");
-
-//            mRichTextEditor.setText(mOriginalText);
-//            mRichTextEditor.setSelection(mRichTextEditor.getText().length());
+            mTitle = getIntent().getStringExtra("title");
+            mTitleET.setText(mTitle);
 
             mRichTextEditor.post(new Runnable() {
                 @Override
@@ -115,6 +120,34 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 }
             });
         }
+
+        mImageClickListener = new RichTextEditor.onImageClickListener() {
+            @Override
+            public void onItemClicked(View view, int position) {
+                int index = 0;
+                List<RichTextEditor.EditData> dataList = mRichTextEditor.buildEditData();
+                ArrayList<String> imagePaths = new ArrayList<>();
+                for (int i = 0; i < dataList.size(); i++) {
+                    if (dataList.get(i).imagePath != null) {
+                        imagePaths.add(dataList.get(i).imagePath);
+                        if (i == position) {
+                            index = imagePaths.size();
+                        }
+                    }
+                }
+                PhotoPreview.builder()
+                        .setPhotos(imagePaths)
+                        .setCurrentItem(index)
+                        .setShowDeleteButton(false)
+                        .start(EditNoteActivity.this);
+            }
+
+            @Override
+            public void onItemLongClicked(View view, int position) {
+
+            }
+        };
+        mRichTextEditor.setOnImageClickListener(mImageClickListener);
 
     }
 
@@ -254,7 +287,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 try {
-                   // String imagePath = path;
+                    // String imagePath = path;
                     mRichTextEditor.measure(0, 0);
                     int width = ScreenUtils.getScreenWidth(EditNoteActivity.this);
                     int height = ScreenUtils.getScreenHeight(EditNoteActivity.this);
@@ -271,7 +304,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                     Bitmap bitmap = ImageUtils.getSmallBitmap(imagePath, width, height);//压缩图片
                     //bitmap = BitmapFactory.decodeFile(imagePath);
                     imagePath = SDCardUtil.saveToSdCard(bitmap);
-                    Log.i("bai", "###imagePath="+imagePath);
+                    Log.i("bai", "###imagePath=" + imagePath);
                     subscriber.onNext(imagePath);
                     // }
                     subscriber.onCompleted();
@@ -308,7 +341,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
     }
 
     private void saveContent(String originalText) {
-        if (isEdit && originalText.equals(mOriginalText) && mTitleET.getText().toString().equals(mNoteInfo.getTitle())) {
+        if (isEdit && originalText.equals(mOriginalText) && mTitleET.getText().toString().equals(mTitle)) {
             return;
         }
 
@@ -319,6 +352,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         cv.put("content", mNoteInfo.getContent());
         cv.put(DatabaseHelper.ORIGINAL_TEXT, mNoteInfo.getOriginalText());
         cv.put(DatabaseHelper.TIME_MODIFIED, mNoteInfo.getModifiedTime());
+        cv.put(DatabaseHelper.DISPLAY_TEXT, mNoteInfo.getDisplayText());
         if (isEdit) {
             getContentResolver().update(NotesProvider.CONTENT_URI, cv, "_id = ?", new String[]{String.valueOf(mId)});
         } else {
@@ -328,10 +362,12 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
 
     private void setNoteInfo(String originalText) {
         mNoteInfo.setOriginalText(originalText);
-        mNoteInfo.setTitle(mTitleET.getText().toString());
-        mNoteInfo.setOriginalText(originalText);
-        String textToShow = originalText.replaceAll("<img src=\"*\"/>", "[image]");
-        mNoteInfo.setTextToShow(textToShow);
+        mNoteInfo.setTitle(mTitleET.getText().toString().trim().equals("") ? "no title" : mTitleET.getText().toString());
+        mNoteInfo.setContent(originalText);//to delete or modify, is the same as originaltext
+        Log.d("baill", "ori str = " + originalText);
+        String displayText = originalText.replaceAll("<img src=\".*?\"/>", "[image]");
+        Log.d("baill", "displayText = " + displayText);
+        mNoteInfo.setDisplayText(displayText);
 
         Long time_modified = System.currentTimeMillis();
         mNoteInfo.setModifiedTime(time_modified);

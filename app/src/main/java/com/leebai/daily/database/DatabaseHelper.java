@@ -15,6 +15,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String TITLE = "tile";
     public static final String CONTENT = "content";
     public static final String ORIGINAL_TEXT = "original_text";
+    public static final String DISPLAY_TEXT = "display_text";
     public static final String TIME_MODIFIED = "time_modified";
     private static final int DATABASE_VERSION = 1;
 
@@ -29,6 +30,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + TITLE + " TEXT,"
                 + CONTENT + " TEXT,"
                 + ORIGINAL_TEXT + " TEXT,"
+                + DISPLAY_TEXT + " TEXT,"
                 + TIME_MODIFIED + " INTEGER"
                 + ");");
 
