@@ -34,7 +34,8 @@ public class SDCardUtil {
 	 * @return
 	 */
 	public static String getPictureDir(){
-		String imageCacheUrl = SDCardRoot + "XRichText" + File.separator ;
+//		String imageCacheUrl = SDCardRoot + "XRichText" + File.separator ;
+        String imageCacheUrl = SDCardRoot + "Daily" + File.separator ;
 		File file = new File(imageCacheUrl);
 		if(!file.exists())
 			file.mkdir();  //如果不存在则创建

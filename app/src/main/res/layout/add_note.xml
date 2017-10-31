@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <LinearLayout
@@ -32,15 +33,23 @@
             android:background="@drawable/ic_done_black_24dp"/>
     </LinearLayout>
 
-    <EditText
-        android:id="@+id/title"
-        android:hint="title"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="@dimen/text_padding"
-        android:paddingRight="@dimen/text_padding"
-        android:lines="1"
-        android:textSize="@dimen/note_title_size"/>
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+
+        <EditText
+            android:id="@+id/title"
+            android:hint="title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="@dimen/text_padding"
+            android:paddingRight="@dimen/text_padding"
+            android:lines="1"
+            android:textSize="@dimen/note_title_size"
+            android:textCursorDrawable="@null"/>
+    </LinearLayout>
 
     <!--<EditText-->
         <!--android:id="@+id/edit"-->

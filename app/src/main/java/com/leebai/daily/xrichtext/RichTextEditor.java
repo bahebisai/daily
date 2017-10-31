@@ -18,11 +18,15 @@ import android.widget.ScrollView;
 
 import com.bumptech.glide.Glide;
 import com.leebai.daily.R;
+import com.leebai.daily.imageview.PhotoPageActivity;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import me.iwf.photopicker.PhotoPreview;
+
 //from richtext demo
+
 /**
  * 可编辑富文本
  */
@@ -222,8 +226,34 @@ public class RichTextEditor extends ScrollView {
         //closeView.setVisibility(GONE);
         closeView.setTag(layout.getTag());
         closeView.setOnClickListener(btnListener);
+//bai
+        DataImageView imageView = layout.findViewById(R.id.edit_imageView);
+        if (mOnImageClickListener != null) {
+            imageView.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    RelativeLayout parentView = (RelativeLayout) v.getParent();
+                    final int position = allLayout.indexOfChild(parentView);
+                    mOnImageClickListener.onItemClicked(v, position);
+                }
+            });
+        }
+//bai
         return layout;
     }
+//bai
+    private onImageClickListener mOnImageClickListener;
+
+    public interface onImageClickListener {
+        void onItemClicked(View view, int position);
+
+        void onItemLongClicked(View view, int position);
+    }
+
+    public void setOnImageClickListener(onImageClickListener listener) {
+        mOnImageClickListener = listener;
+    }
+//bai
 
     /**
      * 根据绝对路径添加view
@@ -241,7 +271,7 @@ public class RichTextEditor extends ScrollView {
     public void insertImage(Bitmap bitmap, String imagePath) {
         String lastEditStr = lastFocusEdit.getText().toString();
         int cursorIndex = lastFocusEdit.getSelectionStart();
-        String editStr1 = lastEditStr.substring(0, cursorIndex).trim();
+        String editStr1 = lastEditStr.substring(0, cursorIndex);
         int lastEditIndex = allLayout.indexOfChild(lastFocusEdit);
 
         if (lastEditStr.length() == 0 || editStr1.length() == 0) {
@@ -250,11 +280,11 @@ public class RichTextEditor extends ScrollView {
         } else {
             // 如果EditText非空且光标不在最顶端，则需要添加新的imageView和EditText
             lastFocusEdit.setText(editStr1);
-            String editStr2 = lastEditStr.substring(cursorIndex).trim();
+            String editStr2 = lastEditStr.substring(cursorIndex);
             if (editStr2.length() == 0) {
                 editStr2 = " ";
             }
-            if (allLayout.getChildCount() - 1 == lastEditIndex) {
+            if (editStr2.length() != 0 || allLayout.getChildCount() - 1 == lastEditIndex) {
                 addEditTextAtIndex(lastEditIndex + 1, editStr2);
             }
 
@@ -283,6 +313,7 @@ public class RichTextEditor extends ScrollView {
     public void addEditTextAtIndex(final int index, CharSequence editStr) {
         EditText editText2 = createEditText("", EDIT_PADDING);
         editText2.setText(editStr);
+        editText2.requestFocus();
         editText2.setOnFocusChangeListener(focusListener);
 
         allLayout.addView(editText2, index);
@@ -294,7 +325,7 @@ public class RichTextEditor extends ScrollView {
     public void addImageViewAtIndex(final int index, String imagePath) {
         final RelativeLayout imageLayout = createImageLayout();
         DataImageView imageView = (DataImageView) imageLayout.findViewById(R.id.edit_imageView);
-        Glide.with(getContext()).load(imagePath).crossFade().centerCrop().into(imageView);
+        Glide.with(getContext()).load(imagePath).into(imageView);
         imageView.setAbsolutePath(imagePath);//保留这句，后面保存数据会用
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);//裁剪剧中
 

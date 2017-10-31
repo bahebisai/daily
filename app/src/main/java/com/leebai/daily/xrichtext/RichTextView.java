@@ -120,7 +120,7 @@ public class RichTextView extends ScrollView {
 
         final RelativeLayout imageLayout = createImageLayout();
         DataImageView imageView = (DataImageView) imageLayout.findViewById(R.id.edit_imageView);
-        Glide.with(getContext()).load(imagePath).crossFade().centerCrop().into(imageView);
+        Glide.with(getContext()).load(imagePath).into(imageView);
         //imageView.setImageBitmap(bmp);//这里改用Glide加载图片
         //imageView.setBitmap(bmp);//这句去掉，保留下面的图片地址即可，优化图片占用
         imageView.setAbsolutePath(imagePath);

@@ -168,11 +168,14 @@ public class NoteListActivity extends Activity implements View.OnClickListener {
     private void startViewItem(View view, int position) {
         Cursor cursor = mAdapter.getCursor();
         String originalText = null;
+        String title = null;
         if (cursor.moveToPosition(position)) {
             originalText = cursor.getString(cursor.getColumnIndex(DatabaseHelper.ORIGINAL_TEXT));
+            title = cursor.getString(cursor.getColumnIndex(DatabaseHelper.TITLE));
         }
         Intent intent = new Intent(this, EditNoteActivity.class);
         intent.setFlags(EDIT_NOTE);
+        intent.putExtra("title", title);
         intent.putExtra("original_text", originalText);
         intent.putExtra("id", mAdapter.getItemId(position));
         startActivity(intent);
