@@ -61,7 +61,7 @@ public class NoteViewAdapter extends RecyclerViewCursorAdapter<NoteViewAdapter.M
         Log.d("bai", "on bindview cursor 111");
 
         String title = cursor.getString(cursor.getColumnIndex(DatabaseHelper.TITLE));
-        String content = cursor.getString(cursor.getColumnIndex(DatabaseHelper.CONTENT));
+        String display_text = cursor.getString(cursor.getColumnIndex(DatabaseHelper.DISPLAY_TEXT));
         long time_modified = cursor.getLong(cursor.getColumnIndex(DatabaseHelper.TIME_MODIFIED));
 
         if (time_modified == 0) {
@@ -71,7 +71,7 @@ public class NoteViewAdapter extends RecyclerViewCursorAdapter<NoteViewAdapter.M
         String time = format.format(time_modified);
 
         holder.sTitle.setText(title);
-        holder.sBriefContent.setText(content);
+        holder.sBriefContent.setText(display_text);
         holder.sTimeStamp.setText(time);
 
     }

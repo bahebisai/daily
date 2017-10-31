@@ -9,7 +9,7 @@ public class NoteInfo {
     private String mTitle;
     private String mContent;
     private String mOriginalText; //text to save, when there is an image, use tag <img img/>
-    private String mTextToShow;  //text to show, when there is an image, show [image]
+    private String mDisplayText;  //text to show, when there is an image, show [image]
     private long mModifiedTime;
 
     public NoteInfo() {
@@ -31,8 +31,8 @@ public class NoteInfo {
         this.mOriginalText = mOriginalText;
     }
 
-    public void setTextToShow(String mTextToShow) {
-        this.mTextToShow = mTextToShow;
+    public void setDisplayText(String mDisplayText) {
+        this.mDisplayText = mDisplayText;
     }
 
     public String getTitle() {
@@ -51,7 +51,7 @@ public class NoteInfo {
         return mOriginalText;
     }
 
-    public String getTextToShow() {
-        return mTextToShow;
+    public String getDisplayText() {
+        return mDisplayText;
     }
 }
