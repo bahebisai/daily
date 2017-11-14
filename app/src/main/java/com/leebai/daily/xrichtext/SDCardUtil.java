@@ -43,6 +43,19 @@ public class SDCardUtil {
 	}
 
 	/**
+	 * add by liting.bai
+	 * get the path where photos taken by camera save
+	 */
+	public static String getCameraPhotoDir() {
+		String photoPath = SDCardRoot + "Daily/camera" + File.separator;
+		File file = new File(photoPath);
+		if (!file.exists()) {
+			file.mkdirs();
+		}
+		return photoPath;
+	}
+
+	/**
 	 * 图片保存到SD卡
 	 * @param bitmap
 	 * @return

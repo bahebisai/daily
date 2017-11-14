@@ -8,7 +8,10 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.text.Layout;
 import android.text.TextUtils;
 import android.util.Log;
@@ -33,7 +36,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import me.iwf.photopicker.PhotoPagerActivity;
 import me.iwf.photopicker.PhotoPreview;
 import rx.Observable;
 import rx.Observer;
@@ -67,6 +69,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
     private final int EDIT_NOTE = 1;
 
     private final int REQUEST_GET_PHOTOS = 1;
+    private final int REQUEST_TAKE_PICTURE = 2;
 
     //isEdit or isNew
     private boolean isEdit;
@@ -74,6 +77,9 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
     private String mTitle;
     private String mOriginalText;
     private long mId;
+
+    //for camera
+    private String mCameraPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,22 +130,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         mImageClickListener = new RichTextEditor.onImageClickListener() {
             @Override
             public void onItemClicked(View view, int position) {
-                int index = 0;
-                List<RichTextEditor.EditData> dataList = mRichTextEditor.buildEditData();
-                ArrayList<String> imagePaths = new ArrayList<>();
-                for (int i = 0; i < dataList.size(); i++) {
-                    if (dataList.get(i).imagePath != null) {
-                        imagePaths.add(dataList.get(i).imagePath);
-                        if (i == position) {
-                            index = imagePaths.size();
-                        }
-                    }
-                }
-                PhotoPreview.builder()
-                        .setPhotos(imagePaths)
-                        .setCurrentItem(index)
-                        .setShowDeleteButton(false)
-                        .start(EditNoteActivity.this);
+                startPhotoPreview(view, position);
             }
 
             @Override
@@ -159,12 +150,10 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
             case R.id.paint:
                 break;
             case R.id.photos:
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/*");
-                startActivityForResult(intent, REQUEST_GET_PHOTOS);
+                startPickPhoto();
                 break;
             case R.id.camera:
+                startTakePhoto();
                 break;
             case R.id.record:
                 break;
@@ -184,20 +173,6 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 break;
             default:
                 break;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case REQUEST_GET_PHOTOS:
-                    insertImagesSync(intent);
-
-                    break;
-                default:
-                    break;
-            }
         }
     }
 
@@ -272,38 +247,56 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         }
     }
 
-
     //RichText
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_GET_PHOTOS:
+                    Uri photosUri = intent.getData();
+                    String imagePath = CommonUtils.getRealFilePath(EditNoteActivity.this, photosUri);
+                    insertImagesSync(imagePath);
+                    break;
+
+                case REQUEST_TAKE_PICTURE:
+//                    Bitmap bitmap1 = (Bitmap) intent.getExtras().get("data");
+                    insertImagesSync(mCameraPhotoPath);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
 
     /**
      * 异步方式插入图片
      *
-     * @param intent
+     * @param path
      */
-    private void insertImagesSync(final Intent intent) {
+    private void insertImagesSync(final String path) {
         // insertDialog.show();
 
         subsInsert = Observable.create(new Observable.OnSubscribe<String>() {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 try {
-                    // String imagePath = path;
                     mRichTextEditor.measure(0, 0);
                     int width = ScreenUtils.getScreenWidth(EditNoteActivity.this);
                     int height = ScreenUtils.getScreenHeight(EditNoteActivity.this);
-                    Log.d("bai ", "height1 = " + height);
-                    Log.d("bai ", "width = " + width);
+
+                    Bitmap bitmap = ImageUtils.getSmallBitmap(path, width, height);//压缩图片
+                    // String imagePath = path;
+
                     //ArrayList<String> photos = data.getStringArrayListExtra(PhotoPicker.KEY_SELECTED_PHOTOS);
                     //可以同时插入多张图片
                     // for (String imagePath : photos) {
 
-                    Uri photosUri = intent.getData();
-                    String imagePath = CommonUtils.getRealFilePath(EditNoteActivity.this, photosUri);
 
-                    Log.i("bai", "###path=" + imagePath);
-                    Bitmap bitmap = ImageUtils.getSmallBitmap(imagePath, width, height);//压缩图片
                     //bitmap = BitmapFactory.decodeFile(imagePath);
-                    imagePath = SDCardUtil.saveToSdCard(bitmap);
+                    String imagePath = SDCardUtil.saveToSdCard(bitmap);
                     Log.i("bai", "###imagePath=" + imagePath);
                     subscriber.onNext(imagePath);
                     // }
@@ -321,7 +314,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                     @Override
                     public void onCompleted() {
                         //insertDialog.dismiss();
-                        mRichTextEditor.addEditTextAtIndex(mRichTextEditor.getLastIndex(), " ");
+                       // mRichTextEditor.addEditTextAtIndex(mRichTextEditor.getLastIndex(), " ");
                         Toast.makeText(EditNoteActivity.this, "图片插入成功", Toast.LENGTH_SHORT);
                     }
 
@@ -394,8 +387,48 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         return textOriginal.toString();
     }
 
-    private String getFirstLineContent(TextView textView) {
+    private void startPhotoPreview(View view, int position) {
+        int index = 0;
+        List<RichTextEditor.EditData> dataList = mRichTextEditor.buildEditData();
+        ArrayList<String> imagePaths = new ArrayList<>();
+        for (int i = 0; i < dataList.size(); i++) {
+            if (dataList.get(i).imagePath != null) {
+                imagePaths.add(dataList.get(i).imagePath);
+                if (i == position) {
+                    index = imagePaths.size();
+                }
+            }
+        }
+        PhotoPreview.builder()
+                .setPhotos(imagePaths)
+                .setCurrentItem(index)
+                .setShowDeleteButton(false)
+                .start(EditNoteActivity.this);
+    }
 
+    private void startPickPhoto() {
+        Intent pickPhoto = new Intent(Intent.ACTION_GET_CONTENT);
+        pickPhoto.addCategory(Intent.CATEGORY_OPENABLE);
+        pickPhoto.setType("image/*");
+        startActivityForResult(pickPhoto, REQUEST_GET_PHOTOS);
+    }
+
+    private void startTakePhoto() {
+        Intent takePhoto = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        mCameraPhotoPath = SDCardUtil.getCameraPhotoDir() + System.currentTimeMillis() + ".jpg";
+        File file = new File(mCameraPhotoPath);
+        if (Build.VERSION.SDK_INT < 24) {
+            takePhoto.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+        } else {
+            Uri uri = FileProvider.getUriForFile(EditNoteActivity.this, getPackageName() + ".provider", file);
+            grantUriPermission(getPackageName(), uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            takePhoto.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            takePhoto.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+        }
+        startActivityForResult(takePhoto, REQUEST_TAKE_PICTURE);
+    }
+
+    private String getFirstLineContent(TextView textView) {
         Layout layout = textView.getLayout();
         StringBuilder stringBuilder = new StringBuilder(textView.getText().toString());
         String content = stringBuilder.subSequence(layout.getLineStart(0), layout.getLineEnd(0)).toString();
