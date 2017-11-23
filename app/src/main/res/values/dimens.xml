@@ -9,4 +9,6 @@
 
     <dimen name="note_title_size">20sp</dimen>
     <dimen name="time_stamp_size">14sp</dimen>
+
+    <dimen name="time_text">20sp</dimen>
 </resources>
