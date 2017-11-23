@@ -23,6 +23,7 @@ import android.widget.Toast;
 
 import com.leebai.daily.database.DatabaseHelper;
 import com.leebai.daily.database.NotesProvider;
+import com.leebai.daily.recorder.SoundRecorderActivity;
 import com.leebai.daily.utils.CommonUtils;
 import com.leebai.daily.utils.ImageUtils;
 import com.leebai.daily.utils.NoteInfo;
@@ -70,6 +71,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
 
     private final int REQUEST_GET_PHOTOS = 1;
     private final int REQUEST_TAKE_PICTURE = 2;
+    private final int REQUEST_RECORDING = 3;
 
     //isEdit or isNew
     private boolean isEdit;
@@ -156,6 +158,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 startTakePhoto();
                 break;
             case R.id.record:
+                startRecording();
                 break;
             case R.id.attachment:
                 break;
@@ -209,8 +212,12 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
 
                     @Override
                     public void onNext(String text) {
+                        Log.d("baiiii", "onnext   " + text);
                         if (text.contains(SDCardUtil.getPictureDir())) {
                             mRichTextEditor.addImageViewAtIndex(mRichTextEditor.getLastIndex(), text);
+                        } else if (text.contains(SDCardUtil.getSoundRecordDir())) {
+                            Log.d("baiiii", "insert record view " + text);
+                            mRichTextEditor.addRecordViewAtIndex(mRichTextEditor.getLastIndex(), text);
                         } else {
                             mRichTextEditor.addEditTextAtIndex(mRichTextEditor.getLastIndex(), text);
                         }
@@ -225,7 +232,10 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
      */
     protected void showEditData(Subscriber<? super String> subscriber, String html) {
         try {
-            List<String> textList = StringUtils.cutStringByImgTag(html);
+            List<String> textList = StringUtils.cutStringByTag(html);
+            for (String text:textList) {
+                Log.d("baiiiii", "text " + text);
+            }
             for (int i = 0; i < textList.size(); i++) {
                 String text = textList.get(i);
                 if (text.contains("<img")) {
@@ -234,6 +244,14 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                         subscriber.onNext(imagePath);
                     } else {
                         Toast.makeText(EditNoteActivity.this, "图片" + i + "已丢失，请重新插入！", Toast.LENGTH_SHORT);
+                    }
+                } else if(text.contains("<audio")) {
+                    String recordPath = StringUtils.getAudioSrc(text);
+                    Log.d("baiiii", "recordPath = " + recordPath);
+                    if (new File(recordPath).exists()) {
+                        subscriber.onNext(recordPath);
+                    } else {
+                        Toast.makeText(EditNoteActivity.this, "something wrong happened to the audio", Toast.LENGTH_SHORT);
                     }
                 } else {
                     subscriber.onNext(text);
@@ -263,6 +281,11 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 case REQUEST_TAKE_PICTURE:
 //                    Bitmap bitmap1 = (Bitmap) intent.getExtras().get("data");
                     insertImagesSync(mCameraPhotoPath);
+                    break;
+
+                case REQUEST_RECORDING:
+                    String recordPath = intent.getStringExtra("path");
+                    insertRecordView(recordPath);
                     break;
 
                 default:
@@ -328,9 +351,13 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                     public void onNext(String imagePath) {
                         Log.d("baill", "1 = " + mRichTextEditor.getMeasuredWidth());
                         Log.d("baill", "imagePath = " + imagePath);
-                        mRichTextEditor.insertImage(imagePath, mRichTextEditor.getMeasuredWidth());
+                        mRichTextEditor.insertView(true, imagePath);
                     }
                 });
+    }
+
+    private void insertRecordView(String path) {
+        mRichTextEditor.insertView(false, path);
     }
 
     private void saveContent(String originalText) {
@@ -359,6 +386,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         mNoteInfo.setContent(originalText);//to delete or modify, is the same as originaltext
         Log.d("baill", "ori str = " + originalText);
         String displayText = originalText.replaceAll("<img src=\".*?\"/>", "[image]");
+        displayText = displayText.replaceAll("<audio src=\".*?\"/>", "[record]");
         Log.d("baill", "displayText = " + displayText);
         mNoteInfo.setDisplayText(displayText);
 
@@ -381,6 +409,8 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 textOriginal.append("<img src=\"").append(itemData.imagePath).append("\"/>");
                 //Log.d("RichEditor", "commit imgePath=" + itemData.imagePath);
                 //imageList.add(itemData.imagePath);
+            } else if (itemData.recordPath != null) {
+                textOriginal.append("<audio src=\"").append(itemData.recordPath).append("\"/>");
             }
         }
 
@@ -428,10 +458,18 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         startActivityForResult(takePhoto, REQUEST_TAKE_PICTURE);
     }
 
+    private void startRecording() {
+        Intent recordingIntent = new Intent(this, SoundRecorderActivity.class);
+        startActivityForResult(recordingIntent, REQUEST_RECORDING);
+    }
+
+    //to be removed
+    //get the first line of TextView/EditText
     private String getFirstLineContent(TextView textView) {
         Layout layout = textView.getLayout();
         StringBuilder stringBuilder = new StringBuilder(textView.getText().toString());
         String content = stringBuilder.subSequence(layout.getLineStart(0), layout.getLineEnd(0)).toString();
         return content;
     }
+
 }
