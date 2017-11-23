@@ -35,7 +35,7 @@ public class SDCardUtil {
 	 */
 	public static String getPictureDir(){
 //		String imageCacheUrl = SDCardRoot + "XRichText" + File.separator ;
-        String imageCacheUrl = SDCardRoot + "Daily" + File.separator ;
+        String imageCacheUrl = SDCardRoot + "Daily/image" + File.separator ;
 		File file = new File(imageCacheUrl);
 		if(!file.exists())
 			file.mkdir();  //如果不存在则创建
@@ -53,6 +53,19 @@ public class SDCardUtil {
 			file.mkdirs();
 		}
 		return photoPath;
+	}
+
+	/**
+	 * add by liting.bai
+	 * get the path where recorder file save
+	 */
+	public static String getSoundRecordDir() {
+		String recorderPath = SDCardRoot + "Daily/recorder" + File.separator;
+		File file = new File(recorderPath);
+		if (!file.exists()) {
+			file.mkdirs();
+		}
+		return recorderPath;
 	}
 
 	/**

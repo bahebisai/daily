@@ -5,11 +5,13 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -18,12 +20,10 @@ import android.widget.ScrollView;
 
 import com.bumptech.glide.Glide;
 import com.leebai.daily.R;
-import com.leebai.daily.imageview.PhotoPageActivity;
+import com.leebai.daily.view.RecordPlayerLayout;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import me.iwf.photopicker.PhotoPreview;
 
 //from richtext demo
 
@@ -37,12 +37,14 @@ public class RichTextEditor extends ScrollView {
     private LinearLayout allLayout; // 这个是所有子view的容器，scrollView内部的唯一一个ViewGroup
     private LayoutInflater inflater;
     private OnKeyListener keyListener; // 所有EditText的软键盘监听器
-    private OnClickListener btnListener; // 图片右上角红叉按钮监听器
+    private OnClickListener clickListener; // 图片右上角红叉按钮监听器 && record layout listener
     private OnFocusChangeListener focusListener; // 所有EditText的焦点监听listener
     private EditText lastFocusEdit; // 最近被聚焦的EditText
     private LayoutTransition mTransitioner; // 只在图片View添加或remove时，触发transition动画
     private int editNormalPadding = 0; //
     private int disappearingImageIndex = 0;
+
+    private static int mCurrentPlayingRecord = -1;
 
     public RichTextEditor(Context context) {
         this(context, null);
@@ -81,13 +83,36 @@ public class RichTextEditor extends ScrollView {
             }
         };
 
-        // 3. 图片叉掉处理
-        btnListener = new OnClickListener() {
+
+        clickListener = new OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                RelativeLayout parentView = (RelativeLayout) v.getParent();
-                onImageCloseClick(parentView);
+                if (v instanceof ImageView) {
+                    // 3. 图片叉掉处理
+                    RelativeLayout parentView = (RelativeLayout) v.getParent();
+                    onImageCloseClick(parentView);
+                } else if (v instanceof RecordPlayerLayout) {//record layout -----------to optimise
+                    Log.d("leee", "current = " + mCurrentPlayingRecord);
+                    Log.d("leee", "click v gettag = " + v.getTag());
+                    if ((int)v.getTag() != mCurrentPlayingRecord && mCurrentPlayingRecord != -1) {
+                        View view = allLayout.findViewWithTag(mCurrentPlayingRecord);
+                        if (view instanceof RecordPlayerLayout) {
+                            if (((RecordPlayerLayout) view).isInPlayStatus()) {
+                                ((RecordPlayerLayout) view).stopAndUpdateUI();
+                            }
+                            ((RecordPlayerLayout) v).startAndUpdateUI();
+                            mCurrentPlayingRecord = (int) v.getTag();
+                        }
+                    } else {
+                        if (((RecordPlayerLayout) v).isInPlayStatus()) {
+                            ((RecordPlayerLayout) v).stopAndUpdateUI();
+                        } else {
+                            ((RecordPlayerLayout) v).startAndUpdateUI();
+                            mCurrentPlayingRecord = (int) v.getTag();
+                        }
+                    }
+                }
             }
         };
 
@@ -216,6 +241,21 @@ public class RichTextEditor extends ScrollView {
     }
 
     /**
+     * liting.bai
+     * todo
+     * create record view
+     * @return
+     */
+    private RecordPlayerLayout createRecordLayout() {
+        RecordPlayerLayout layout = (RecordPlayerLayout) inflater.inflate(R.layout.layout_record_player, null);
+        layout.setTag(viewTagIndex++);
+        Log.d("leee", "tag = " + viewTagIndex);
+        Log.d("leee", "gettag = " + layout.getTag());
+        layout.setOnClickListener(clickListener);
+        return layout;
+    }
+
+    /**
      * 生成图片View
      */
     private RelativeLayout createImageLayout() {
@@ -225,7 +265,7 @@ public class RichTextEditor extends ScrollView {
         View closeView = layout.findViewById(R.id.image_close);
         //closeView.setVisibility(GONE);
         closeView.setTag(layout.getTag());
-        closeView.setOnClickListener(btnListener);
+        closeView.setOnClickListener(clickListener);
 //bai
         DataImageView imageView = layout.findViewById(R.id.edit_imageView);
         if (mOnImageClickListener != null) {
@@ -262,13 +302,14 @@ public class RichTextEditor extends ScrollView {
      */
     public void insertImage(String imagePath, int width) {
         Bitmap bmp = getScaledBitmap(imagePath, width);
-        insertImage(bmp, imagePath);
+//        insertImage(bmp, imagePath);
     }
 
     /**
-     * 插入一张图片
+     * 插入一张图片/reoordview
+     * modified by liting.bai
      */
-    public void insertImage(Bitmap bitmap, String imagePath) {
+    public void insertView(boolean isImage, String path) {
         String lastEditStr = lastFocusEdit.getText().toString();
         int cursorIndex = lastFocusEdit.getSelectionStart();
         String editStr1 = lastEditStr.substring(0, cursorIndex);
@@ -276,7 +317,8 @@ public class RichTextEditor extends ScrollView {
 
         if (lastEditStr.length() == 0 || editStr1.length() == 0) {
             // 如果EditText为空，或者光标已经顶在了editText的最前面，则直接插入图片，并且EditText下移即可
-            addImageViewAtIndex(lastEditIndex, imagePath);
+            //addImageViewAtIndex(lastEditIndex, imagePath);
+            addViewAtIndex(lastEditIndex, path, isImage);
         } else {
             // 如果EditText非空且光标不在最顶端，则需要添加新的imageView和EditText
             lastFocusEdit.setText(editStr1);
@@ -288,9 +330,10 @@ public class RichTextEditor extends ScrollView {
                 addEditTextAtIndex(lastEditIndex + 1, editStr2);
             }
 
-            addImageViewAtIndex(lastEditIndex + 1, imagePath);
-            lastFocusEdit.requestFocus();
-            lastFocusEdit.setSelection(editStr1.length(), editStr1.length());//TODO
+//            addImageViewAtIndex(lastEditIndex + 1, imagePath);
+            addViewAtIndex(lastEditIndex + 1, path, isImage);
+          //  lastFocusEdit.requestFocus();
+           // lastFocusEdit.setSelection(editStr1.length(), editStr1.length());//TODO
         }
         hideKeyBoard();
     }
@@ -318,6 +361,32 @@ public class RichTextEditor extends ScrollView {
 
         allLayout.addView(editText2, index);
     }
+
+    /**
+     * liting.bai
+     * @param index
+     * @param path
+     */
+    private void addViewAtIndex(final int index, String path, boolean isImage) {
+        if (isImage) {
+            addImageViewAtIndex(index, path);
+        } else {
+            addRecordViewAtIndex(index, path);
+        }
+    }
+
+    /**
+     * liting.bai
+     * todo
+     * @param index
+     * @param recordPath
+     */
+    public void addRecordViewAtIndex(final int index, String recordPath) {
+        final RecordPlayerLayout recordPlayerLayout = createRecordLayout();
+        recordPlayerLayout.setPath(recordPath);
+        allLayout.addView(recordPlayerLayout, index);
+    }
+
 
     /**
      * 在特定位置添加ImageView
@@ -376,6 +445,8 @@ public class RichTextEditor extends ScrollView {
             } else if (itemView instanceof RelativeLayout) {
                 DataImageView item = (DataImageView) itemView.findViewById(R.id.edit_imageView);
                 itemData.imagePath = item.getAbsolutePath();
+            } else if (itemView instanceof RecordPlayerLayout) {
+                itemData.recordPath = ((RecordPlayerLayout) itemView).getPath();
             }
             dataList.add(itemData);
         }
@@ -386,5 +457,6 @@ public class RichTextEditor extends ScrollView {
     public class EditData {
         public String inputStr;
         public String imagePath;
+        public String recordPath;//liting.bai
     }
 }

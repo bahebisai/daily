@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:allowBackup="true"
@@ -15,47 +15,38 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".NoteListActivity">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".EditNoteActivity"
-            android:windowSoftInputMode="adjustResize|stateHidden"
-            >
-
-        </activity>
-
-        <activity android:name=".imageview.PhotoPageActivity">
-
-        </activity>
-
-
-        <activity android:name="me.iwf.photopicker.PhotoPickerActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            />
-
-        <activity android:name="me.iwf.photopicker.PhotoPagerActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"/>
+        <activity
+            android:name=".EditNoteActivity"
+            android:windowSoftInputMode="adjustResize|stateHidden"></activity>
+        <activity android:name=".imageview.PhotoPageActivity"></activity>
+        <activity
+            android:name="me.iwf.photopicker.PhotoPickerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity
+            android:name="me.iwf.photopicker.PhotoPagerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
 
         <provider
-            android:authorities="com.leebai.daily"
             android:name=".database.NotesProvider"
-            android:exported="false">
-
-        </provider>
-
+            android:authorities="com.leebai.daily"
+            android:exported="false"></provider>
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="com.leebai.daily.provider"
             android:exported="false"
             android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"/>
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
         </provider>
 
+        <activity android:name=".recorder.SoundRecorderActivity"></activity>
     </application>
 
 </manifest>
