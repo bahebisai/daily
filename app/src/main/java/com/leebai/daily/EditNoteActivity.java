@@ -6,11 +6,13 @@ package com.leebai.daily;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
 import android.text.Layout;
 import android.text.TextUtils;
@@ -27,6 +29,7 @@ import com.leebai.daily.recorder.SoundRecorderActivity;
 import com.leebai.daily.utils.CommonUtils;
 import com.leebai.daily.utils.ImageUtils;
 import com.leebai.daily.utils.NoteInfo;
+import com.leebai.daily.utils.PermissionUtils;
 import com.leebai.daily.utils.ScreenUtils;
 import com.leebai.daily.utils.StringUtils;
 import com.leebai.daily.xrichtext.RichTextEditor;
@@ -34,6 +37,7 @@ import com.leebai.daily.xrichtext.SDCardUtil;
 
 
 import java.io.File;
+import java.security.Permission;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -152,13 +156,19 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
             case R.id.paint:
                 break;
             case R.id.photos:
-                startPickPhoto();
+                if (PermissionUtils.isStoragePermissionGranted(this)) {
+                    startPickPhoto();
+                }
                 break;
             case R.id.camera:
-                startTakePhoto();
+                if (PermissionUtils.isCameraPermissionGranted(this)) {
+                    startTakePhoto();
+                }
                 break;
             case R.id.record:
-                startRecording();
+                if (PermissionUtils.isMicPhonePermissionGranted(this)) {
+                    startRecording();
+                }
                 break;
             case R.id.attachment:
                 break;
@@ -178,6 +188,7 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
                 break;
         }
     }
+
 
     //RichText
 
@@ -470,6 +481,30 @@ public class EditNoteActivity extends Activity implements View.OnClickListener {
         StringBuilder stringBuilder = new StringBuilder(textView.getText().toString());
         String content = stringBuilder.subSequence(layout.getLineStart(0), layout.getLineEnd(0)).toString();
         return content;
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PermissionUtils.REQUEST_PERMISSON_STORAGE:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startPickPhoto();
+                }
+                break;
+            case PermissionUtils.REQUEST_PERMISSON_CAMERA:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startTakePhoto();
+                }
+                break;
+            case PermissionUtils.REQUEST_PERMISSON_MICPHONE:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startRecording();
+                }
+                break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
     }
 
 }
